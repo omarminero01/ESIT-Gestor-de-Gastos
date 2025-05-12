@@ -1,18 +1,71 @@
+// ignore_for_file: file_names
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 void main() {
-  runApp(const ExpenseApp());
+  runApp(const GastosApp());
 }
 
-class ExpenseApp extends StatelessWidget {
-  const ExpenseApp({super.key});
+class GastosApp extends StatelessWidget {
+  const GastosApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      title: "GastosApp",
       debugShowCheckedModeBanner: false,
-      home: ExpenseHomePage(),
+      theme: ThemeData(
+        primarySwatch: Colors.indigo,
+        hintColor: Colors.tealAccent,
+        fontFamily: 'Montserrat',
+        appBarTheme: const AppBarTheme(
+          titleTextStyle: TextStyle(
+            fontFamily: 'Montserrat',
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            color: Colors.white,
+          ),
+        ),
+        textTheme: TextTheme(
+          titleLarge: const TextStyle(
+            fontFamily: 'Montserrat',
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.black87,
+          ),
+          titleMedium: TextStyle(
+            fontFamily: 'Montserrat',
+            fontSize: 16,
+            color: Colors.grey[700],
+          ),
+          bodyMedium: const TextStyle(
+            fontFamily: 'Montserrat',
+            fontSize: 14,
+            color: Colors.black87,
+          ),
+          bodySmall: TextStyle(color: Colors.grey[600]),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.indigo,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8.0),
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(foregroundColor: Colors.indigo),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+          focusedBorder: OutlineInputBorder(
+            borderSide: const BorderSide(color: Colors.indigo, width: 2.0),
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+        ),
+      ),
+      home: const ExpenseHomePage(),
     );
   }
 }
@@ -31,6 +84,7 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     'Alimentación',
     'Transporte',
     'Entretenimiento',
+    'Ropa y Otros', // Agregada la nueva categoría
   ];
 
   void _addTransaction(
@@ -97,26 +151,40 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
       context: context,
       builder:
           (_) => AlertDialog(
-            title: Text(index == null ? 'Nuevo Gasto' : 'Editar Gasto'),
+            title: Text(
+              index == null ? 'Nuevo Gasto' : 'Editar Gasto',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             content: SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
                     controller: titleController,
-                    decoration: const InputDecoration(labelText: 'Descripción'),
+                    decoration: const InputDecoration(
+                      labelText: 'Descripción',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: amountController,
-                    decoration: const InputDecoration(labelText: 'Monto'),
+                    decoration: const InputDecoration(
+                      labelText: 'Monto',
+                      border: OutlineInputBorder(),
+                    ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(DateFormat.yMMMd().format(selectedDate)),
-                      const SizedBox(width: 10),
+                      Text(
+                        'Fecha: ${DateFormat.yMMMd().format(selectedDate)}',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
                       ElevatedButton(
                         onPressed: () async {
                           final pickedDate = await showDatePicker(
@@ -135,22 +203,27 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: selectedCategory,
                     items:
                         _categories
-                            .map(
-                              (cat) => DropdownMenuItem(
+                            .map<DropdownMenuItem<String>>(
+                              (cat) => DropdownMenuItem<String>(
                                 value: cat,
                                 child: Text(cat),
                               ),
                             )
                             .toList(),
                     onChanged: (String? value) {
-                      selectedCategory = value!;
+                      if (value != null) {
+                        selectedCategory = value;
+                      }
                     },
-                    decoration: const InputDecoration(labelText: 'Categoría'),
+                    decoration: const InputDecoration(
+                      labelText: 'Categoría',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                 ],
               ),
@@ -187,8 +260,26 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                 child: const Text('Guardar'),
               ),
             ],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15.0),
+            ),
           ),
     );
+  }
+
+  Color _getCategoryColor(String category) {
+    switch (category) {
+      case 'Alimentación':
+        return Colors.orange[300]!;
+      case 'Transporte':
+        return Colors.blue[300]!;
+      case 'Entretenimiento':
+        return Colors.purple[300]!;
+      case 'Ropa y Otros': // Nuevo caso para la categoría "Ropa y Otros"
+        return Colors.green[300]!; // Puedes elegir el color que prefieras
+      default:
+        return Colors.grey[400]!;
+    }
   }
 
   @override
@@ -200,15 +291,31 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
         child: Column(
           children: [
             Card(
-              color: Colors.amber[100],
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              color: Theme.of(context).colorScheme.secondary.withAlpha(204),
               child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Text(
-                  'Gasto Total: \$${totalGastos.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Gasto Total',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleLarge?.copyWith(color: Colors.white),
+                    ),
+                    Text(
+                      '\$${totalGastos.toStringAsFixed(2)}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -221,31 +328,61 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                         itemCount: _transactions.length,
                         itemBuilder: (_, index) {
                           final tx = _transactions[index];
-                          return ListTile(
-                            title: Text(tx['title']),
-                            subtitle: Text(
-                              '\$${(tx['amount'] as num).toStringAsFixed(2)} - ${tx['category']} - ${DateFormat.yMMMd().format(tx['date'])}',
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 16,
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit,
-                                    color: Colors.blue,
-                                  ),
-                                  onPressed:
-                                      () =>
-                                          _showTransactionDialog(index: index),
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: _getCategoryColor(
+                                  tx['category'],
                                 ),
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
+                                radius: 25,
+                                child: Text(
+                                  tx['category'][0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  onPressed: () => _deleteTransaction(index),
                                 ),
-                              ],
+                              ),
+                              title: Text(
+                                tx['title'],
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              subtitle: Text(
+                                '\$${(tx['amount'] as num).toStringAsFixed(2)} - ${tx['category']} - ${DateFormat.yMMMd().format(tx['date'])}',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: Colors.grey[600]),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.edit,
+                                      color: Colors.blue,
+                                    ),
+                                    onPressed:
+                                        () => _showTransactionDialog(
+                                          index: index,
+                                        ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () => _deleteTransaction(index),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
@@ -256,7 +393,9 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showTransactionDialog(),
-        child: const Icon(Icons.add),
+        backgroundColor: Theme.of(context).primaryColor,
+        elevation: 6,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
