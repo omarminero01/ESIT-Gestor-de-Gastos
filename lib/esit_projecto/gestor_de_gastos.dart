@@ -1,6 +1,7 @@
-// ignore_for_file: file_names
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart'; // Importa el paquete sqflite
+import 'package:path/path.dart' as path; // Importa el paquete path con un alias
 
 void main() {
   runApp(const GastosApp());
@@ -78,54 +79,107 @@ class ExpenseHomePage extends StatefulWidget {
 }
 
 class _ExpenseHomePageState extends State<ExpenseHomePage> {
-  final List<Map<String, dynamic>> _transactions = [];
-
+  //final List<Map<String, dynamic>> _transactions = []; // Ya no se usa la lista en memoria
+  late Database _database; // Agrega una instancia de la base de datos
   final List<String> _categories = [
     'Alimentación',
     'Transporte',
     'Entretenimiento',
-    'Ropa y Otros', // Agregada la nueva categoría
+    'Ropa y Otros',
   ];
 
-  void _addTransaction(
+  @override
+  void initState() {
+    super.initState();
+    _initDatabase(); // Inicializa la base de datos al iniciar el estado
+  }
+
+  // Inicializa la base de datos SQLite
+  Future<void> _initDatabase() async {
+    final dbPath = await getDatabasesPath();
+    final dbFilePath = path.join(
+      dbPath,
+      'gastos.db',
+    ); // Evita conflicto de nombres
+
+    _database = await openDatabase(
+      dbFilePath,
+      version: 1,
+      onCreate: (db, version) async {
+        await db.execute('''
+        CREATE TABLE transacciones (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT,
+          amount REAL,
+          date TEXT,
+          category TEXT
+          )
+        ''');
+      },
+    );
+    await _loadTransactions(); // Carga las transacciones desde la base de datos
+  }
+
+  // Carga las transacciones desde la base de datos
+  Future<void> _loadTransactions() async {
+    final List<Map<String, dynamic>> transactionsFromDB = await _database.query(
+      'transacciones',
+    );
+    setState(() {
+      _transactions =
+          transactionsFromDB; // Asigna los datos cargados a _transactions
+    });
+  }
+
+  // La variable _transactions ahora debe ser una lista mutable
+  List<Map<String, dynamic>> _transactions = [];
+
+  // Agrega una nueva transacción a la base de datos
+  Future<void> _addTransaction(
     String title,
     double amount,
     DateTime date,
     String category,
-  ) {
-    setState(() {
-      _transactions.add({
-        'title': title,
-        'amount': amount,
-        'date': date,
-        'category': category,
-      });
+  ) async {
+    await _database.insert('transacciones', {
+      'title': title,
+      'amount': amount,
+      'date':
+          date.toIso8601String(), // Guarda la fecha como String en formato ISO
+      'category': category,
     });
+    await _loadTransactions(); // Recarga la lista de transacciones
   }
 
-  void _editTransaction(
-    int index,
+  // Edita una transacción existente en la base de datos
+  Future<void> _editTransaction(
+    int id,
     String title,
     double amount,
     DateTime date,
     String category,
-  ) {
-    setState(() {
-      _transactions[index] = {
+  ) async {
+    await _database.update(
+      'transacciones',
+      {
         'title': title,
         'amount': amount,
-        'date': date,
+        'date': date.toIso8601String(),
         'category': category,
-      };
-    });
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+    await _loadTransactions();
   }
 
-  void _deleteTransaction(int index) {
-    setState(() {
-      _transactions.removeAt(index);
-    });
+  // Elimina una transacción de la base de datos
+  Future<void> _deleteTransaction(int id) async {
+    await _database.delete('transacciones', where: 'id = ?', whereArgs: [id]);
+    await _loadTransactions();
   }
 
+  // Calcula el total de gastos
   double get totalGastos {
     return _transactions.fold(
       0.0,
@@ -133,18 +187,23 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
     );
   }
 
-  void _showTransactionDialog({int? index}) {
+  // Muestra el diálogo para agregar o editar transacciones
+  void _showTransactionDialog({
+    int? index,
+    Map<String, dynamic>? transactionData,
+  }) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     DateTime selectedDate = DateTime.now();
     String selectedCategory = _categories[0];
 
-    if (index != null) {
-      final tx = _transactions[index];
-      titleController.text = tx['title'];
-      amountController.text = tx['amount'].toString();
-      selectedDate = tx['date'];
-      selectedCategory = tx['category'];
+    if (transactionData != null) {
+      titleController.text = transactionData['title'];
+      amountController.text = transactionData['amount'].toString();
+      selectedDate = DateTime.parse(
+        transactionData['date'],
+      ); // Convierte la cadena de fecha a DateTime
+      selectedCategory = transactionData['category'];
     }
 
     showDialog(
@@ -234,20 +293,23 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                 child: const Text('Cancelar'),
               ),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  // Marcar la función como async
                   final title = titleController.text;
                   final amount = double.tryParse(amountController.text) ?? 0.0;
                   if (title.isNotEmpty && amount > 0) {
                     if (index == null) {
-                      _addTransaction(
+                      await _addTransaction(
+                        // Esperar a que la transacción se añada
                         title,
                         amount,
                         selectedDate,
                         selectedCategory,
                       );
                     } else {
-                      _editTransaction(
-                        index,
+                      // Pasar el ID de la transacción a _editTransaction
+                      await _editTransaction(
+                        _transactions[index]['id'],
                         title,
                         amount,
                         selectedDate,
@@ -255,6 +317,7 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                       );
                     }
                   }
+                  // ignore: use_build_context_synchronously
                   Navigator.pop(context);
                 },
                 child: const Text('Guardar'),
@@ -275,8 +338,8 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
         return Colors.blue[300]!;
       case 'Entretenimiento':
         return Colors.purple[300]!;
-      case 'Ropa y Otros': // Nuevo caso para la categoría "Ropa y Otros"
-        return Colors.green[300]!; // Puedes elegir el color que prefieras
+      case 'Ropa y Otros':
+        return Colors.green[300]!;
       default:
         return Colors.grey[400]!;
     }
@@ -357,7 +420,7 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
-                                '\$${(tx['amount'] as num).toStringAsFixed(2)} - ${tx['category']} - ${DateFormat.yMMMd().format(tx['date'])}',
+                                '\$${(tx['amount'] as num).toStringAsFixed(2)} - ${tx['category']} - ${DateFormat.yMMMd().format(DateTime.parse(tx['date']))}', // Formatea la fecha
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(color: Colors.grey[600]),
                               ),
@@ -372,14 +435,18 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
                                     onPressed:
                                         () => _showTransactionDialog(
                                           index: index,
-                                        ),
+                                          transactionData: tx,
+                                        ), // Pasando el ID
                                   ),
                                   IconButton(
                                     icon: const Icon(
                                       Icons.delete,
                                       color: Colors.red,
                                     ),
-                                    onPressed: () => _deleteTransaction(index),
+                                    onPressed:
+                                        () => _deleteTransaction(
+                                          tx['id'],
+                                        ), // Llama a _deleteTransaction con el ID
                                   ),
                                 ],
                               ),
@@ -398,5 +465,11 @@ class _ExpenseHomePageState extends State<ExpenseHomePage> {
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _database.close();
+    super.dispose();
   }
 }
