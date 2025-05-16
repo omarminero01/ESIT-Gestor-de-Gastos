@@ -1,26 +1,36 @@
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter/material.dart'; //Esta línea importa la librería principal de Material Design
+import 'package:intl/intl.dart'; // Esta línea importa la librería intl, que proporciona funcionalidades para la internacionalización y localización
 import 'package:sqflite/sqflite.dart'; // Importa el paquete sqflite
 import 'package:path/path.dart' as path; // Importa el paquete path con un alias
 
 void main() {
-  runApp(const GastosApp());
+  runApp(
+    const GastosApp(), //Este es el punto de entrada de la aplicación Flutter
+  );
 }
 
 class GastosApp extends StatelessWidget {
+  //Widgets: GastosApp es un StatelessWidget
   const GastosApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: "GastosApp",
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, // oculta la etiqueta de "Debug"
       theme: ThemeData(
-        primarySwatch: Colors.indigo,
-        hintColor: Colors.tealAccent,
-        fontFamily: 'Montserrat',
+        //Establece el tema de la aplicacion
+        primarySwatch:
+            Colors.indigo, // El color primario de la aplicación (índigo)
+        hintColor:
+            Colors
+                .tealAccent, // El color de las sugerencias en los campos de texto (tealAccent).
+        fontFamily:
+            'Montserrat', // La fuente de texto principal ('Montserrat').
         appBarTheme: const AppBarTheme(
+          // Estilos específicos para la barra de la aplicación (color del texto, fuente, tamaño, peso).
           titleTextStyle: TextStyle(
+            // Estilos de texto predefinidos para diferentes propósitos (títulos grandes, medianos, cuerpo de texto).
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.bold,
             fontSize: 20,
@@ -28,6 +38,7 @@ class GastosApp extends StatelessWidget {
           ),
         ),
         textTheme: TextTheme(
+          //// Estilos de texto predefinidos para diferentes propósitos (títulos grandes, medianos, cuerpo de texto).
           titleLarge: const TextStyle(
             fontFamily: 'Montserrat',
             fontWeight: FontWeight.bold,
@@ -47,6 +58,7 @@ class GastosApp extends StatelessWidget {
           bodySmall: TextStyle(color: Colors.grey[600]),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
+          // Estilos para los botones elevados (color de fondo, color del texto, forma).
           style: ElevatedButton.styleFrom(
             foregroundColor: Colors.white,
             backgroundColor: Colors.indigo,
@@ -56,9 +68,11 @@ class GastosApp extends StatelessWidget {
           ),
         ),
         textButtonTheme: TextButtonThemeData(
+          // Estilos para los botones de texto (color del texto).
           style: TextButton.styleFrom(foregroundColor: Colors.indigo),
         ),
         inputDecorationTheme: InputDecorationTheme(
+          //// Estilos para la decoración de los campos de entrada (bordes).
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
           focusedBorder: OutlineInputBorder(
             borderSide: const BorderSide(color: Colors.indigo, width: 2.0),
